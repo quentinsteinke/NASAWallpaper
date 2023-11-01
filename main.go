@@ -4,8 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 )
 
@@ -23,13 +25,13 @@ func main() {
 	requestUrl := fmt.Sprintf("%s%s&count=%d", NASAUrl, apiKey, count)
 	response, err := http.Get(requestUrl)
 	if err != nil {
-		fmt.Printf("Couldn't get response")
+		log.Fatalf("Couldn't get response: %v", err)
 		return
 	}
 
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
-		fmt.Println("Couldn't read response body")
+		log.Fatalf("Couldn't read response body: %v", err)
 		return
 	}
 	response.Body.Close()
@@ -38,7 +40,7 @@ func main() {
 
 	err = json.Unmarshal([]byte(body), &imageUrl)
 	if err != nil {
-		fmt.Printf("Unable to Unmarshal body: %v", err)
+		log.Fatalf("Unable to Unmarshal body: %v", err)
 		return
 	}
 
@@ -46,20 +48,32 @@ func main() {
 
 	err = downloadImage(imageUrl[0].Url)
 	if err != nil {
-		fmt.Printf("Unable to download image: %v", err)
+		log.Fatalf("Unable to download image: %v", err)
 	}
 }
 
 func downloadImage(imageUrl string) error {
 	response, err := http.Get(imageUrl)
 	if err != nil {
-		fmt.Printf("Couldn't get response from url: %v", err)
+		log.Fatalf("Couldn't get response from url: %v", err)
 		return err
 	}
+	defer response.Body.Close()
 
-	imageName, err = getFileNameFromUrl(imageUrl)
+	imageName, err := getFileNameFromUrl(imageUrl)
 	if err != nil {
-		fmt.Printf("Unable to get image name from url: %v", err)
+		log.Fatalf("Unable to get image name from url: %v", err)
+	}
+
+	file, err := os.Create(fmt.Sprintf("images/%s", imageName))
+	if err != nil {
+		log.Fatalf("Couldn't create file: %v", err)
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, response.Body)
+	if err != nil {
+		log.Fatalf("Couldn't write file: %v", err)
 	}
 	return nil
 }
