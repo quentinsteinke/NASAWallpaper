@@ -92,3 +92,7 @@ func getFileNameFromUrl(imageUrl string) (string, error) {
 
 	return fmt.Sprint(imageName), nil
 }
+
+// func setWallpaper(imagePath) error {
+// 	syscall.LoadDLL()
+// }
